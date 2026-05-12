@@ -1,13 +1,13 @@
 import streamlit as st
-import boto3
 import os
-import json
+
 from utility import check_password
 from agents.main_agent import MainAgent
 from agents.call_report import CallReportAgent
 from agents.format_report import FormatReportAgent
 from agents.extract_info import ExtractInfoAgent
 from agents.writer import write_meeting_note, write_individual_note, write_organisation_note
+from agents.store import SavingAgent
 import logging
 from dotenv import load_dotenv
 
@@ -27,7 +27,7 @@ if not check_password():
 load_dotenv()
 
 SGT = timezone(timedelta(hours=8))
-S3_BUCKET_ENV="user-corrections"
+
 AWS_ACCESS_KEY_ID=os.getenv("AWS_ACCESS_KEY_ID", "")
 AWS_SECRET_ACCESS_KEY=os.getenv("AWS_SECRET_ACCESS_KEY", "")
 AWS_DEFAULT_REGION=os.getenv("AWS_DEFAULT_REGION", "ap-southeast-1")
@@ -36,17 +36,6 @@ assistant_model = os.getenv("ASSISTANT_MODEL", "gpt-4.1-mini").strip()
 call_report_model = os.getenv("CALL_REPORT_MODEL", "gpt-4.1-mini").strip()
 format_report_model = os.getenv("FORMAT_REPORT_MODEL", "gpt-4.1-mini").strip()
 extract_info_model = os.getenv("EXTRACT_INFO_MODEL", "gpt-4.1-mini").strip()
-DEFAULT_S3_PREFIX="agentic-crms"
-
-def get_s3_client():
-    return boto3.client(
-                "s3",
-                aws_access_key_id=AWS_ACCESS_KEY_ID,
-                aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-                region_name=AWS_DEFAULT_REGION,
-            )
-
-s3_client = get_s3_client()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -54,34 +43,6 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-
-def save_chat_logs():
-    """
-    Saves the entire current chat session to S3.
-    This overwrites the same session file each time.
-    """
-    s3_key = f"{DEFAULT_S3_PREFIX}/logs/{datetime.now(SGT).isoformat()}.json"
-
-    s3_client.put_object(
-        Bucket=S3_BUCKET_ENV,
-        Key=s3_key,
-        Body=json.dumps(st.session_state.messages, ensure_ascii=False, indent=2),
-        ContentType="application/json",
-    )
-
-def save_notes(content: str, title: str, type: str):
-    """
-    Saves the entire current chat session to S3.
-    This overwrites the same session file each time.
-    """
-    s3_key = f"{DEFAULT_S3_PREFIX}/{type}/{title}_{datetime.now(SGT).isoformat()}.md"
-
-    s3_client.put_object(
-        Bucket=S3_BUCKET_ENV,
-        Key=s3_key,
-        Body=content,
-        ContentType="text/markdown",
-    )
 
 # endregion <--------- Streamlit Page Configuration --------->
 
@@ -93,15 +54,6 @@ if st.button("Reset app"):
 
     st.rerun()
 
-# Store chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-    st.session_state.messages.append({
-        "role": "assistant",
-        "content": f"Hi — I am your personal AI assistant v0.1.\n\nCurrently, here are my existing capabilities:\n1. log call report and then format and extract information\n2. (Work in progress) research on a topic and save the research notes in markdown format\n\n",
-        "timestamp": datetime.now(SGT).isoformat()
-    })
-
 if "downloads" not in st.session_state:
     st.session_state.downloads = []
 
@@ -110,6 +62,7 @@ if "state" not in st.session_state:
         "flag": "main_agent",
     }
 
+s3_client = SavingAgent(aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, region_name=AWS_DEFAULT_REGION)
 main_agent = MainAgent(api_key=openai_api_key, model=assistant_model)
 call_report_agent = CallReportAgent(api_key=openai_api_key, model=call_report_model)
 format_report_agent = FormatReportAgent(api_key=openai_api_key, model=format_report_model)
@@ -146,6 +99,15 @@ with st.sidebar:
                 mime=file["mime"],
                 key=f"sidebar_download_{i}",
             )
+
+# Store chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+    st.session_state.messages.append({
+        "role": "assistant",
+        "content": f"Hi — I am your personal AI assistant v0.1.\n\nCurrently, here are my existing capabilities:\n1. log call report and then format and extract information\n2. (Work in progress) research on a topic and save the research notes in markdown format\n\n",
+        "timestamp": datetime.now(SGT).isoformat()
+    })
 
 # Display past messages
 for message in st.session_state.messages:
@@ -238,7 +200,9 @@ if user_input:
             else:
                 logger.info("save 1, report")
                 file_name, content = write_meeting_note(agent_response)
-                save_notes(content, file_name, "notes")
+                logger.info(file_name)
+                logger.info(content)
+                s3_client.save_notes(content=content, title=file_name, type="notes")
                 # Add file separately to download box
                 st.session_state.downloads.append({
                     "label": file_name+".md",
@@ -247,11 +211,12 @@ if user_input:
                     "mime": "text/markdown",
                     "created_at": datetime.now().isoformat(),
                 })
+
                 st.session_state.response_id["format_report"] = ""
-                placeholder.markdown("I have generated the formatted meeting notes. You can download them from the file box on the left. I will go on to extract information about individuals.\nThinking...")
+                placeholder.markdown("I have generated the formatted meeting notes. Please wait a moment for the file to load. In the meantime, I will go on to extract information about individuals.\nThinking...")
                 st.session_state.messages.append({
                     "role": "assistant",
-                    "content": "I have generated the formatted meeting notes. You can download them from the file box on the left. I will go on to extract information about individuals",
+                    "content": "I have generated the formatted meeting notes. Please wait a moment for the file to load. In the meantime, I will go on to extract information about individuals",
                     "timestamp": datetime.now(SGT).isoformat(),
                 })
                 input = "Please extract information about individual and organisation from this set of information" + content
@@ -285,7 +250,7 @@ if user_input:
                     "content": parsed_results,
                     "timestamp": datetime.now(SGT).isoformat(),
                 })
-                save_chat_logs()
+                s3_client.save_chat_logs(st.session_state.messages)
                 st.rerun()
 
         elif flag == "extract_info" :
@@ -324,7 +289,7 @@ if user_input:
                 logger.info("save 2, report")
                 for person in agent_response.people:
                     file_name, content = write_individual_note(person)
-                    save_notes(content, file_name, "people")
+                    s3_client.save_notes(content=content, title=file_name, type="people")
                     st.session_state.downloads.append({
                         "label": file_name+".md",
                         "data": content,
@@ -334,7 +299,7 @@ if user_input:
                     })
                 for org in agent_response.organisations:
                     file_name, content = write_organisation_note(org)
-                    save_notes(content, file_name, "organisations")
+                    s3_client.save_notes(content=content, title=file_name, type="organisations")
                     st.session_state.downloads.append({
                         "label": file_name+".md",
                         "data": content,
@@ -349,7 +314,7 @@ if user_input:
                     "content": "I have generated the formatted notes. You can download them from the file box on the left.",
                     "timestamp": datetime.now(SGT).isoformat(),
                 })
-                save_chat_logs()
+                s3_client.save_chat_logs(st.session_state.messages)
                 st.rerun()
 
         else:
