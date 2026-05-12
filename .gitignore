@@ -1,0 +1,10 @@
+__pycache__
+venv/
+.airbase
+.env*
+!.env.example
+airbase.json
+DOckerfile
+.dockerignore
+.gitlab-ci.yml
+README.md
