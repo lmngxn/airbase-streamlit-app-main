@@ -1,4 +1,3 @@
-import streamlit as st
 from openai import OpenAI
 import json
 from pydantic import BaseModel, ValidationError
@@ -121,7 +120,6 @@ class ExtractionReport(BaseModel):
     people: List[Person] = []
     organisations: List[Organisation] = []
 
-@st.cache_resource
 class ExtractInfoAgent:
     def __init__(self, api_key: str, model: str ) -> None: 
         self.client = OpenAI(api_key=api_key)

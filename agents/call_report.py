@@ -1,4 +1,3 @@
-import streamlit as st
 from openai import OpenAI
 import json
 
@@ -67,7 +66,6 @@ The JSON object must follow this schema:
 }
 """.strip()
 
-@st.cache_resource
 class CallReportAgent:
     def __init__(self, api_key: str, model: str ) -> None: 
         self.client = OpenAI(api_key=api_key)

@@ -38,7 +38,6 @@ format_report_model = os.getenv("FORMAT_REPORT_MODEL", "gpt-4.1-mini").strip()
 extract_info_model = os.getenv("EXTRACT_INFO_MODEL", "gpt-4.1-mini").strip()
 DEFAULT_S3_PREFIX="agentic-crms"
 
-@st.cache_resource
 def get_s3_client():
     return boto3.client(
                 "s3",

@@ -1,4 +1,3 @@
-import streamlit as st
 from openai import OpenAI
 import json
 from pydantic import BaseModel, ValidationError
@@ -72,7 +71,6 @@ class MeetingNote(BaseModel):
     details: str = ""
     follow_ups: List[str] = []
 
-@st.cache_resource
 class FormatReportAgent:
     def __init__(self, api_key: str, model: str ) -> None: 
         self.client = OpenAI(api_key=api_key)
