@@ -249,9 +249,10 @@ if user_input:
                     "created_at": datetime.now().isoformat(),
                 })
                 st.session_state.response_id["format_report"] = ""
+                placeholder.markdown("I have generated the formatted meeting notes. You can download them from the file box on the left. I will go on to extract information about individuals.\nThinking...")
                 st.session_state.messages.append({
                     "role": "assistant",
-                    "content": "I have generated the formatted meeting notes. You can download them from the file box on the left. Please start a new conversation",
+                    "content": "I have generated the formatted meeting notes. You can download them from the file box on the left. I will go on to extract information about individuals",
                     "timestamp": datetime.now(SGT).isoformat(),
                 })
                 input = "Please extract information about individual and organisation from this set of information" + content
@@ -263,20 +264,20 @@ if user_input:
                 if agent_response.people:
                     for person in agent_response.people:
                         parsed_results += (
-                            f"### {person.name}\n\n"
+                            f"## {person.name}\n"
                             f"**Occupation / Education**  \n{person.occupation_education or 'Not provided'}\n\n"
                             f"**Interests**  \n{person.interests or 'Not provided'}\n\n"
                             f"**Personality**  \n{person.personality or 'Not provided'}\n\n"
                             f"**Personal**  \n{person.personal or 'Not provided'}\n\n"
-                            "---\n\n"
+                            "---\n"
                         )
 
                 if agent_response.organisations:
                     for org in agent_response.organisations:
                         parsed_results += (
-                            f"### {org.name}\n\n"
+                            f"## {org.name}\n"
                             f"**Description**  \n{org.description or 'Not provided'}\n\n"
-                            "---\n\n"
+                            "---\n"
                         )
                 if agent_response.response:
                     parsed_results += f"{agent_response.response}\n\n"
@@ -294,20 +295,20 @@ if user_input:
                 if agent_response.people:
                     for person in agent_response.people:
                         parsed_results += (
-                            f"### {person.name}\n\n"
+                            f"## {person.name}\n"
                             f"**Occupation / Education**  \n{person.occupation_education or 'Not provided'}\n\n"
                             f"**Interests**  \n{person.interests or 'Not provided'}\n\n"
                             f"**Personality**  \n{person.personality or 'Not provided'}\n\n"
                             f"**Personal**  \n{person.personal or 'Not provided'}\n\n"
-                            "---\n\n"
+                            "---\n"
                         )
 
                 if agent_response.organisations:
                     for org in agent_response.organisations:
                         parsed_results += (
-                            f"### {org.name}\n\n"
+                            f"## {org.name}\n"
                             f"**Description**  \n{org.description or 'Not provided'}\n\n"
-                            "---\n\n"
+                            "---\n"
                         )
                 if agent_response.response:
                     parsed_results += f"{agent_response.response}\n\n"
