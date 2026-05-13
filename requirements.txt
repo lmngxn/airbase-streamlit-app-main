@@ -1,9 +1,5 @@
-boto3
-python-dateutil==2.9.0.post0
-pytz==2025.1
+boto3airb
 streamlit==1.41.1
-toml==0.10.2
-tzdata==2025.1
 openai>=1.60.0
 python-dotenv>=1.0.1
 pydantic
