@@ -177,8 +177,9 @@ if st.session_state.state["needs_llm_call"]:
             })
 
             st.session_state.messages.append({
-            "role": "assistant",
-            "content": "I have generated the formatted meeting notes. Please wait a moment for the file to load. In the meantime, I will go on to extract information about individuals"
+                "role": "assistant",
+                "content": "I have generated the formatted meeting notes. Please wait a moment for the file to load. You will see it on the left section of the window. In the meantime, I will go on to extract information about individuals",
+                "timestamp": datetime.now(SGT).isoformat(),
             })
 
             st.session_state.response_id['format_report'] = ""
@@ -232,6 +233,11 @@ if st.session_state.state["needs_llm_call"]:
                     "mime": "text/markdown",
                     "created_at": datetime.now().isoformat(),
                 })
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content":  "I have generated the formatted notes for individuals and organisations. You will see it on the left section of the window.",
+                "timestamp": datetime.now(SGT).isoformat(),
+            })
             st.session_state.response_id["extract_info"] = ""
             s3_client.save_chat_logs(st.session_state.messages)
             agent_response = "The other agents have completed their task. Please start a new conversation."
@@ -240,7 +246,8 @@ if st.session_state.state["needs_llm_call"]:
     if agent_name == next_agent:
         st.session_state.messages.append({
             "role": "assistant",
-            "content": agent_response
+            "content": agent_response,
+            "timestamp": datetime.now(SGT).isoformat(),
         })
         st.session_state.state.update({
             "pending_input": None,

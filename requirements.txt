@@ -1,4 +1,4 @@
-boto3airb
+boto3
 streamlit==1.41.1
 openai>=1.60.0
 python-dotenv>=1.0.1
