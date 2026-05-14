@@ -48,7 +48,6 @@ For each person, extract:
 - interests: Topics, hobbies, professional interests, or areas they engaged with.
 - personality: Personality traits or behavioural observations explicitly mentioned.
 - personal: Other personal details mentioned.
-- summary: 1-2 sentence summary of the person.
 - connections: People they are connected to and the relationship or context.
 - meetings: Meeting dates and titles where the person was mentioned.
 
@@ -67,7 +66,7 @@ Return exactly one JSON object using this schema:
       "occupation_education": "Role, company, occupation, or educational background",
       "interests": "Topics, hobbies, professional interests, or areas they engaged with",
       "personality": "Personality traits or behavioural observations explicitly mentioned",
-      "personal": "Other personal details mentioned",
+      "others": "Other personal details mentioned",
       "connections": [
         {
           "name": "Connected person's name",
@@ -105,7 +104,7 @@ class Person(BaseModel):
     occupation_education: str = ""
     interests: str = ""
     personality: str = ""
-    personal: str = ""
+    others: str = ""
     summary: str = ""
     connections: List[Connection] = []
     meeting: Meeting = None
@@ -184,3 +183,26 @@ class ExtractInfoAgent:
             )
 
         return results, "extract_info", response.id
+    
+    def format_response(self, agent_response):
+        parsed_results = ""
+        if agent_response.people:
+            for person in agent_response.people:
+                parsed_results += (
+                    f"### {person.name}\n"
+                    f"**Occupation / Education**  \n{person.occupation_education or 'No information'}\n\n"
+                    f"**Interests**  \n{person.interests or 'No information'}\n\n"
+                    f"**Personality**  \n{person.personality or 'No information'}\n\n"
+                    f"**Other Info**  \n{person.others or 'No information'}\n\n"
+                    "---\n"
+                )
+        if agent_response.organisations:
+            for org in agent_response.organisations:
+                parsed_results += (
+                    f"### {org.name}\n"
+                    f"**Description**  \n{org.description or 'No information'}\n\n"
+                    "---\n"
+                )
+        if agent_response.response:
+            parsed_results += f"{agent_response.response}\n\n"
+        return parsed_results

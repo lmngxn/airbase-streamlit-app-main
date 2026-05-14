@@ -141,13 +141,13 @@ def _render_individual(note: IndividualNote) -> str:
         f"---\n"
         f"name: {note.name}\n"
         f"---\n"
-        f"## Profile\n"
-        f"### Personal\n{note.personal}\n\n"
-        f"### Occupation / Education\n{note.occupation_education}\n\n"
-        f"## Interests\n{note.interests}\n\n"
-        f"## Connections\n{conn_table}\n"
-        f"## Underlying Personality\n{note.personality}\n\n"
-        f"## Meetings\n{meetings_table}"
+        f"# Profile\n"
+        f"## Occupation / Education\n{note.occupation_education}\n\n"
+        f"# Interests\n{note.interests}\n\n"
+        f"# Connections\n{conn_table}\n"
+        f"# Underlying Personality\n{note.personality}\n\n"
+        f"# Other Information\n{note.others}\n\n"
+        f"# Meetings\n{meetings_table}"
     )
 
 

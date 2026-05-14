@@ -136,5 +136,20 @@ class FormatReportAgent:
 
         return results, "format_report", response.id
 
-
+    def format_response(self, agent_response):
+        parsed_results = (
+                        f"Date: {agent_response.date}\n\n"
+                        f"Title: {agent_response.title or 'Untitled Meeting'}\n\n"
+                        f"Attendees:\n"
+                        f"{('\n'.join(f'- {attendee} ({details})' for attendee, details in zip(agent_response.attendees, agent_response.attendees_details)))}\n\n"
+                        f"Summary:\n"
+                        f"{agent_response.summary or 'Not specified'}\n\n"
+                        f"Details:\n"
+                        f"{agent_response.details or 'Not specified'}\n\n"
+                        f"Follow-ups:\n"
+                        f"{'\n'.join(f'- {follow_up}' for follow_up in agent_response.follow_ups)}\n\n"
+                        f"---\n"
+                        f"{agent_response.response}\n\n"                
+                    )
+        return parsed_results
 
