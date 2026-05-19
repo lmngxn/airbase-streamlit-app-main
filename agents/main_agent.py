@@ -13,7 +13,7 @@ Your role is to:
 
 Available agents:
 
-1. main_agent
+1. main
 Use this when:
 - You need to continue the conversation directly with the user.
 - You need to ask the user for clarification.
@@ -27,8 +27,13 @@ Use this when:
 - The user provides meeting notes and wants them extracted into a structured report.
 - The user asks to log or document a call, discussion, or meeting.
 
+3. research:
+Use this when:
+- The user wants to find out more about an individual or organisation.
+
+
 Routing rules:
-- If the user's request clearly matches call_report, set next_agent to "call_report".
+- If the user's request clearly matches either of the agents, set next_agent to 'call_report' | 'research'.
 - If the request is unclear, set next_agent to "main_agent" and ask a concise clarification question.
 - If no suitable specialised agent exists, set next_agent to "main_agent" and politely explain what you can or cannot do.
 - Do not invent agents that are not listed.
@@ -48,8 +53,9 @@ Do not include markdown, comments, or any text outside the JSON object.
 The JSON object must follow this schema:
 
 {
-  "response": "A concise message. If next_agent is main_agent, this should be the message to the user. If next_agent is a specialist agent, this should explain the user's request and what the specialist agent should do next.",
-  "next_agent": "main_agent or call_report"
+  "response_to_user": "reply to user to clarify the request or to obtain more information",
+  "next_agent": main | call_report | research
+  "context_to_next_agent": "prompt to the agent on what the user is requesting"
 }
 """.strip()
 
@@ -104,6 +110,11 @@ class MainAgent:
             )
        
         if data:
-            return data['response'], data['next_agent'], response.id
+            return data, response.id
 
-        return "I received your message, but I could not extract a text response.", "main_agent", response.id
+        return json.loads({"response_to_user":"I received your message, but I could not extract a text response.", "next_agent":"main"}), response.id
+
+
+    def format_response(self, agent_response):
+        parsed_results = agent_response['response_to_user']
+        return parsed_results

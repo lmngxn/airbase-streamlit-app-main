@@ -7,6 +7,8 @@ from agents.main_agent import MainAgent
 from agents.call_report import CallReportAgent
 from agents.format_report import FormatReportAgent
 from agents.extract_info import ExtractInfoAgent
+from agents.save_meeting_notes import SavingMeeting
+from agents.save_person_org_notes import SavingPersonOrg
 from agents.store import SavingAgent
 
 
@@ -23,7 +25,7 @@ def init_session(config: dict):
 
     if "state" not in st.session_state:
         st.session_state.state = {
-            "current_agent": "main_agent",
+            "current_agent": "main",
             "pending_input": None,
             "needs_llm_call": False,
             "waiting_for_user": True,
@@ -31,19 +33,23 @@ def init_session(config: dict):
 
     if "agents" not in st.session_state:
         st.session_state.agents = {
-            "main_agent": MainAgent(api_key=config['openai_api_key'], model=config['assistant_model']),
+            "main": MainAgent(api_key=config['openai_api_key'], model=config['assistant_model']),
             "call_report": CallReportAgent(api_key=config['openai_api_key'], model=config['call_report_model']),
             "format_report": FormatReportAgent(api_key=config['openai_api_key'], model=config['format_report_model']),
             "extract_info": ExtractInfoAgent(api_key=config['openai_api_key'], model=config['extract_info_model']),
+            "save_meeting": SavingMeeting(aws_access_key_id=config['aws_access_key_id'], aws_secret_access_key=config['aws_secret_access_key'], region_name=config['aws_region']),
+            "save_people_org": SavingPersonOrg(aws_access_key_id=config['aws_access_key_id'], aws_secret_access_key=config['aws_secret_access_key'], region_name=config['aws_region']),
             "saving_to_s3": SavingAgent(aws_access_key_id=config['aws_access_key_id'], aws_secret_access_key=config['aws_secret_access_key'], region_name=config['aws_region'])
         }
 
     if "response_id" not in st.session_state:
         st.session_state.response_id = {
-            "main_agent": "",
+            "main": "",
             "call_report": "",
             "format_report": "",
             "extract_info": "",
+            "save_meeting": "",
+            "save_people_org": "",
         }
 
 def check_password():
@@ -103,7 +109,7 @@ def append_message(role, content):
     st.session_state.messages.append({
         "role": role,
         "content": content,
-        "timestamp": datetime.now(SGT).isoformat(),
+        "timestamp": datetime.now(SGT).strftime("%Y-%m-%dT%H-%M-%S"),
     })
     
 def add_download(file_name, content):
@@ -112,5 +118,5 @@ def add_download(file_name, content):
         "data": content,
         "file_name": file_name+".md",
         "mime": "text/markdown",
-        "created_at": datetime.now().isoformat(),
+        "created_at": datetime.now(SGT).strftime("%Y-%m-%dT%H-%M"),
     })

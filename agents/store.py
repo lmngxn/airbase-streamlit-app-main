@@ -20,7 +20,7 @@ class SavingAgent:
         Saves the entire current chat session to S3.
         This overwrites the same session file each time.
         """
-        s3_key = f"{DEFAULT_S3_PREFIX}/logs/{datetime.now(SGT).isoformat()}.json"
+        s3_key = f"{DEFAULT_S3_PREFIX}/logs/{datetime.now(SGT).strftime("%Y-%m-%dT%H-%M")}.json"
 
         self.client.put_object(
             Bucket=S3_BUCKET_ENV,
@@ -34,7 +34,7 @@ class SavingAgent:
         Saves the entire current chat session to S3.
         This overwrites the same session file each time.
         """
-        s3_key = f"{DEFAULT_S3_PREFIX}/{type}/{title}_{datetime.now(SGT).isoformat()}.md"
+        s3_key = f"{DEFAULT_S3_PREFIX}/{type}/{title}_{datetime.now(SGT).strftime("%Y-%m-%dT%H-%M")}.md"
 
         self.client.put_object(
             Bucket=S3_BUCKET_ENV,

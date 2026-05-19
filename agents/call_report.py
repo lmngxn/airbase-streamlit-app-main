@@ -31,7 +31,7 @@ Use this when:
 - The user has provided meeting notes that include the core meeting details, key discussion points, and follow-ups.
 - Some minor fields are missing, but the report can still be drafted with “Not specified” where appropriate.
 
-3. main_agent
+3. main
 Use this when:
 - The user no longer wants to log or create the meeting report.
 - The user asks to stop, cancel, exit, or do something unrelated to meeting notes.
@@ -61,10 +61,9 @@ Do not include markdown, comments, or any text outside the JSON object.
 The JSON object must follow this schema:
 
 {
-  "response": "If next_agent is call_report, this should be a concise question or message to the user asking for the most important missing information. 
-  If next_agent is format_report, this should provide the raw notes of the meeting and instruct the formatter structure the information that can be used to create a markdown version. 
-  If next_agent is main_agent, this should briefly explain why the meeting report logging has stopped and state what the user wants to do next.",
-  "next_agent": "call_report or format_report or main_agent"
+  "response_to_user": "concise question or message to the user asking for the most important missing information.",
+  "next_agent": main | call_report | format_report
+  "context_to_next_agent": "prompt to the agent on what the user is requesting. If passing to the format_report agent, it should provide all the information the user has shared regarding the meeting in paragraphs. Do not pass it in a JSON format."
 }
 """.strip()
 
@@ -119,6 +118,10 @@ class CallReportAgent:
             )
 
         if data:
-            return data['response'], data['next_agent'], response.id
+            return data, response.id
 
-        return "I received your message, but I could not extract a text response.", "main_agent", response.id
+        return json.loads({"response_to_user":"I received your message, but I could not extract a text response.", "next_agent": "main"}), response.id
+
+    def format_response(self, agent_response):
+        parsed_results = agent_response['response_to_user']
+        return parsed_results

@@ -11,6 +11,24 @@ Your job is to convert extracted meeting information or raw meeting notes into a
 Return valid JSON only.
 Do not include markdown, comments, or explanations outside the JSON object.
 
+Available agents:
+
+1. main
+Use this when:
+- The user no longer wants to log or create the meeting report.
+- The user asks to stop, cancel, exit, or want to do something unrelated to meeting notes.
+- The request should be handled by the main assistant instead.
+
+2. format_report
+Use this when:
+- You need to continue asking the user questions.
+- The user has more meeting information to add to the report.
+- You need more details before the report can be saved.
+
+3. save_meeting
+Use this when:
+- The user has confirmed that the formatted report is ready to be saved
+
 Core rules:
 - Do not invent missing facts.
 - Do not drop important details.
@@ -47,8 +65,7 @@ Output schema:
 Return exactly one JSON object with this structure:
 
 {
-  "response": "Short message to the user. After the first draft, ask whether they would like any edits. If this is a revision, briefly confirm the update. 
-  if the output is ready to be saved, output only the word SAVE in uppercase.",
+  "response_to_user": "Short message to the user. After the first draft, ask whether they would like any edits. If this is a revision, briefly confirm the update. 
   "title": "Concise meeting title, 5–10 words",
   "date": "YYYY-MM-DD or Not specified",
   "attendees": ["Name"],
@@ -57,11 +74,13 @@ Return exactly one JSON object with this structure:
   "details": "Organised sections with headings in already markup format."
   "follow_ups": ["Action item, including owner and deadline if available."],
   "raw_notes": "Comprehensive cleaned narrative of the original source notes."
+  "next_agent": format_report | save_meeting | main
+  "context_to_next_agent": "instructions to the next agent, if any, from the user"
 }
 """.strip()
 
 class MeetingNote(BaseModel):
-    response: str
+    response_to_user: str
     title: str
     date: str
     attendees: List[str]
@@ -70,6 +89,8 @@ class MeetingNote(BaseModel):
     summary: str = ""
     details: str = ""
     follow_ups: List[str] = []
+    next_agent: str
+    context_to_next_agent: str
 
 class FormatReportAgent:
     def __init__(self, api_key: str, model: str ) -> None: 
@@ -134,22 +155,22 @@ class FormatReportAgent:
                 f"Last output was:\n{response.output_text}"
             )
 
-        return results, "format_report", response.id
+        return data, response.id
 
     def format_response(self, agent_response):
         parsed_results = (
-                        f"Date: {agent_response.date}\n\n"
-                        f"Title: {agent_response.title or 'Untitled Meeting'}\n\n"
+                        f"Date: {agent_response['date']}\n\n"
+                        f"Title: {agent_response['title'] or 'Untitled Meeting'}\n\n"
                         f"Attendees:\n"
-                        f"{('\n'.join(f'- {attendee} ({details})' for attendee, details in zip(agent_response.attendees, agent_response.attendees_details)))}\n\n"
+                        f"{('\n'.join(f'- {attendee} ({details})' for attendee, details in zip(agent_response['attendees'], agent_response['attendees_details'])))}\n\n"
                         f"Summary:\n"
-                        f"{agent_response.summary or 'Not specified'}\n\n"
+                        f"\n{agent_response['summary'] or 'Not specified'}\n\n"
                         f"Details:\n"
-                        f"{agent_response.details or 'Not specified'}\n\n"
+                        f"\n{agent_response['details'] or 'Not specified'}\n\n"
                         f"Follow-ups:\n"
-                        f"{'\n'.join(f'- {follow_up}' for follow_up in agent_response.follow_ups)}\n\n"
+                        f"{'\n'.join(f'- {follow_up}' for follow_up in agent_response['follow_ups'])}\n\n"
                         f"---\n"
-                        f"{agent_response.response}\n\n"                
+                        f"{agent_response['response_to_user']}\n\n"                
                     )
         return parsed_results
 

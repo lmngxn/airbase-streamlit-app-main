@@ -11,6 +11,24 @@ Your task is to extract structured profiles for all clearly identifiable people 
 Return valid JSON only.
 Do not include markdown, comments, or explanations outside the JSON object.
 
+Available agents:
+
+1. main
+Use this when:
+- The user asks to stop, cancel, exit, or want to do something unrelated to user or organisations notes.
+- The request should be handled by the main assistant instead.
+
+2. extract_info
+Use this when:
+- When you extract the information for the first time. Do at least one confirmation with the user.
+- You need to continue asking the user questions.
+- The user has more meeting information to add to the report.
+- You need more details before the report can be saved.
+
+3. save_people_org
+Use this when:
+- The user has confirmed that the notes on people and organisations are ready to be saved
+
 Core rules:
 - Extract multiple people if more than one person has meaningful information.
 - Extract multiple organisations if more than one organisation has meaningful information.
@@ -59,7 +77,7 @@ For each organisation, extract:
 Return exactly one JSON object using this schema:
 
 {
-  "response": "Check with the user is the information is accurate and whether they would like any edits. If this is a revision, briefly confirm the update. If the output is ready to be saved, output only the word SAVE in uppercase.",
+  "response_to_user": "Check with the user is the information is accurate and whether they would like any edits. If this is a revision, briefly confirm the update. If the output is ready to be saved, output only the word SAVE in uppercase.",
   "people": [
     {
       "name": "Full name of the individual",
@@ -87,7 +105,9 @@ Return exactly one JSON object using this schema:
         }
       ]
     }
-  ]
+  ],
+  "next_agent": main | extract_info | save_people_org
+  "context_to_next_agent": "instructions to the next agent, if any, from the user"
 }
 """.strip()
 
@@ -115,9 +135,11 @@ class Organisation(BaseModel):
     connections: List[Connection] = []
 
 class ExtractionReport(BaseModel):
-    response: str
+    response_to_user: str
     people: List[Person] = []
     organisations: List[Organisation] = []
+    next_agent: str
+    context_to_next_agent: str
 
 class ExtractInfoAgent:
     def __init__(self, api_key: str, model: str ) -> None: 
@@ -182,27 +204,27 @@ class ExtractInfoAgent:
                 f"Last output was:\n{response.output_text}"
             )
 
-        return results, "extract_info", response.id
+        return data, response.id
     
     def format_response(self, agent_response):
         parsed_results = ""
-        if agent_response.people:
-            for person in agent_response.people:
+        if agent_response['people']:
+            for person in agent_response['people']:
                 parsed_results += (
-                    f"### {person.name}\n"
-                    f"**Occupation / Education**  \n{person.occupation_education or 'No information'}\n\n"
-                    f"**Interests**  \n{person.interests or 'No information'}\n\n"
-                    f"**Personality**  \n{person.personality or 'No information'}\n\n"
-                    f"**Other Info**  \n{person.others or 'No information'}\n\n"
+                    f"### {person['name']}\n"
+                    f"**Occupation / Education**  \n{person['occupation_education'] or 'No information'}\n\n"
+                    f"**Interests**  \n{person['interests'] or 'No information'}\n\n"
+                    f"**Personality**  \n{person['personality'] or 'No information'}\n\n"
+                    f"**Other Info**  \n{person['others'] or 'No information'}\n\n"
                     "---\n"
                 )
-        if agent_response.organisations:
-            for org in agent_response.organisations:
+        if agent_response['organisations']:
+            for org in agent_response['organisations']:
                 parsed_results += (
-                    f"### {org.name}\n"
-                    f"**Description**  \n{org.description or 'No information'}\n\n"
+                    f"### {org['name']}\n"
+                    f"**Description**  \n{org['description'] or 'No information'}\n\n"
                     "---\n"
                 )
-        if agent_response.response:
-            parsed_results += f"{agent_response.response}\n\n"
+        if agent_response['response_to_user']:
+            parsed_results += f"{agent_response['response_to_user']}\n\n"
         return parsed_results
