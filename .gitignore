@@ -7,5 +7,4 @@ airbase.json
 DOckerfile
 .dockerignore
 .gitlab-ci.yml
-README.md
 main_old.py
